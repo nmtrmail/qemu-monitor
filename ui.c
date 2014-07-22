@@ -352,12 +352,6 @@ static void display_init()
 	display_win = newwin(DISPLAY_LINES, DISPLAY_COLS, DISPLAY_Y, DISPLAY_X);
 	box(display_win, 0, 0);
 
-	/* Show label */
-	/*
-	mvwaddstr(display_win, DISPLAY_Y + 1, DISPLAY_X + 1, "Display");
-	mvwhline(display_win, DISPLAY_Y + 2, DISPLAY_X + 1, ACS_HLINE, DISPLAY_COLS - 2);
-	*/
-
 	wrefresh(display_win);
 }
 
@@ -437,7 +431,6 @@ void display_add(char *input)
 	}
 
 	if(!valid) {
-		//printf("Invalid register name\n");
 		console_puts("Invalid register name\n");
 		return;
 	}
@@ -446,7 +439,6 @@ void display_add(char *input)
 	tmp->pos = i;
 	tmp->index = j;
 	tmp->next = NULL;
-	//printf("Add register %s to hook list\n", input);
 	console_puts("Add register ");
 	console_puts(input);
 	console_puts(" to hook list\n");
@@ -460,7 +452,6 @@ void display_add(char *input)
 	/* Iterate to last element */
 	for(; it != NULL; it = it->next) {
 		if(!strcmp(reg_array[it->pos].array[it->index].name, input)) {
-			//printf("Register %s has already in hook list\n", input);
 			console_puts("Register ");
 			console_puts(input);
 			console_puts(" has already in hook list\n");
