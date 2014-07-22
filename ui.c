@@ -458,7 +458,7 @@ void display_add(char *input)
 	}
 
 	/* Iterate to last element */
-	for(; it->next != NULL; it = it->next) {
+	for(; it != NULL; it = it->next) {
 		if(!strcmp(reg_array[it->pos].array[it->index].name, input)) {
 			//printf("Register %s has already in hook list\n", input);
 			console_puts("Register ");
@@ -466,8 +466,12 @@ void display_add(char *input)
 			console_puts(" has already in hook list\n");
 			return;
 		}
+
+		if(it->next == NULL) {
+			it->next = tmp;
+			break;
+		}
 	}
-	it->next = tmp;
 }
 
 
