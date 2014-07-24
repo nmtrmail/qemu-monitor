@@ -21,16 +21,19 @@
 
 /* Global Variables */
 HookRegisters *hook_head;
+FetcherPacket cur_packet;
 
 /* Command prototype */
 void cmd_display(int argc, char *argv[]);
 void cmd_undisplay(int argc, char *argv[]);
+void cmd_print(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
 
 /* Command array */
 CMDDefinition cmd[] = {
 	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display register_name"},
 	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay register_name"},
+	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print register_name [end_bit [start_bit]]"},
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide"},
 };
 
@@ -85,6 +88,8 @@ void display_update(FetcherPacket packet)
 		y++;
 		x = DISPLAY_X + 1;
 	}
+
+	memcpy(&cur_packet, &packet, sizeof(FetcherPacket));
 
 	wrefresh(display_win);
 }
@@ -345,6 +350,70 @@ void cmd_undisplay(int argc, char *argv[])
 	console_puts("Register \"");
 	console_puts(argv[0]);
 	console_puts("\" is not in the display list!\n");
+}
+
+void cmd_print(int argc, char *argv[])
+{
+	ARMCPRegInfo tmp;
+	uint64_t value;
+	int valid = 0, i, j;
+	char str[128] = {0};
+
+	/* Search register in registers array */
+	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
+		for(j = 0; j < reg_array[i].size; j++) {
+			if(!strcmp(reg_array[i].array[j].name, argv[0])) {
+				valid = 1;
+				tmp = reg_array[i].array[j];
+				break;
+			}
+		}
+
+		if(valid) {
+			break;
+		}
+	}
+
+	if(!valid) {
+		console_puts("Invalid register name\n");
+		return;
+	}
+
+	switch(tmp.type) {
+	case ARM_CP_UNIMPL:
+		console_puts("UNIMPLEMENTED\n");
+		return;
+	case ARM_CP_CONST:
+		value = tmp.const_value;
+		break;
+	case ARM_CP_NORMAL_L:
+		value = *(uint32_t *)((uint8_t *)(&cur_packet) + tmp.fieldoffset);
+		break;
+	case ARM_CP_NORMAL_H:
+		value = *(uint64_t *)((uint8_t *)(&cur_packet) + tmp.fieldoffset);
+		break;
+	}
+
+	uint64_t mask = 0xFFFFFFFFFFFFFFFF;
+	if(argc == 1) {
+		sprintf(str, "%s = 0x%lx\n", tmp.name, value);
+	}
+	else if(argc == 2) {
+		int end_bit = atoi(argv[1]);
+		mask >>= (63 - end_bit);
+		sprintf(str, "%s[%d:0] = 0x%lx\n", tmp.name, end_bit, value & mask);
+	}
+	else if(argc == 3) {
+		int end_bit, start_bit;
+		end_bit = atoi(argv[1]);
+		start_bit = atoi(argv[2]);
+		int len = end_bit - start_bit;
+
+		mask >>= (63 - len);
+		mask <<= start_bit;
+		sprintf(str, "%s[%d:%d] = 0x%lx\n", tmp.name, end_bit, start_bit, (value & mask) >> start_bit);
+	}
+	console_puts(str);
 }
 
 void cmd_help(int argc, char *argv[])
