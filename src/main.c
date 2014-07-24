@@ -6,13 +6,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <ncurses.h>
+#include <errno.h>
 
-#include "packet.h"
-#include "fetcher.h"
+#include "types.h"
 #include "ui.h"
 
 /* IPC socket address */
-#define ADDRESS "fetcher"
+#define ADDRESS "tools/fetcher"
 
 /* Global variables */
 FILE *fp;
@@ -24,7 +25,7 @@ static void conn(void)
         int len;
         struct sockaddr_un saun;
         if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-                printf("client: socket");
+                console_puts("\nclient: socket\n");
         }
 
         saun.sun_family = AF_UNIX;
@@ -33,7 +34,8 @@ static void conn(void)
         len = sizeof(saun.sun_family) + strlen(saun.sun_path);
 
         if (connect(s, (struct sockaddr *)&saun, len) < 0) {
-                printf("client: connect");
+		printw("%d", errno);
+                console_puts("\nclient: connect\n");
         }
 
         fp = fdopen(s, "r");
@@ -45,6 +47,7 @@ static void *conn_thread(void *arg)
 
 	/* Connect to QEMU */
         conn();
+	console_puts("\nconnect done\n");
 
 	/* Handle each packet received from QEMU */
         while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {
