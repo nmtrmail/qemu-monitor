@@ -116,4 +116,16 @@ typedef struct HookRegisters {
 	struct HookRegisters *next;
 } HookRegisters;
 
+/* Command handler */
+typedef void (*CMDHandler)(int, char **);
+
+/* Command definition
+ * name : command name
+ * handle : command handler
+ */
+typedef struct CMDDefinition {
+	const char *name;
+	CMDHandler handler;
+} CMDDefinition;
+
 #endif

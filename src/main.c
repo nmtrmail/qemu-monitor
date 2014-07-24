@@ -47,7 +47,6 @@ static void *conn_thread(void *arg)
 
 	/* Connect to QEMU */
         conn();
-	console_puts("\nconnect done\n");
 
 	/* Handle each packet received from QEMU */
         while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {

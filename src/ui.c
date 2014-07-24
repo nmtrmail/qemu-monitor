@@ -17,8 +17,21 @@
 #define CONSOLE_Y	(DISPLAY_Y + DISPLAY_LINES)
 #define CONSOLE_X	0
 
+#define MAX_LINE_WORDS	128
+
 /* Global Variables */
 HookRegisters *hook_head;
+
+/* Command prototype */
+void cmd_display(int argc, char *argv[]);
+void cmd_undisplay(int argc, char *argv[]);
+
+/* Command array */
+CMDDefinition cmd[] = {
+	{.name = "display", .handler = cmd_display},
+	{.name = "undisplay", .handler = cmd_undisplay},
+};
+
 
 /* UI Design
  * Split the whole window to two parts:
@@ -95,63 +108,6 @@ static void display_destructor(void)
 	}
 }
 
-/* Add hook registers which need to be trace */
-void display_add(char *input)
-{
-	HookRegisters *it = hook_head;
-	int i, j;
-	int valid = 0;
-
-	/* Search register in registers array */
-	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
-		for(j = 0; j < reg_array[i].size; j++) {
-			if(!strcmp(reg_array[i].array[j].name, input)) {
-				valid = 1;
-				break;
-			}
-		}
-
-		if(valid) {
-			break;
-		}
-	}
-
-	if(!valid) {
-		console_puts("Invalid register name\n");
-		return;
-	}
-
-	HookRegisters *tmp = (HookRegisters *)malloc(sizeof(HookRegisters));
-	tmp->pos = i;
-	tmp->index = j;
-	tmp->next = NULL;
-	console_puts("Add register ");
-	console_puts(input);
-	console_puts(" to hook list\n");
-
-	/* First element */
-	if(it == NULL) {
-		hook_head = tmp;
-		return;
-	}
-
-	/* Iterate to last element */
-	for(; it != NULL; it = it->next) {
-		if(!strcmp(reg_array[it->pos].array[it->index].name, input)) {
-			console_puts("Register ");
-			console_puts(input);
-			console_puts(" has already in hook list\n");
-			return;
-		}
-
-		if(it->next == NULL) {
-			it->next = tmp;
-			break;
-		}
-	}
-}
-
-
 /* Console Design
  * We need to handle console ourself. Try to make it like normal stdout act.
  * Provide some API for programmer use:
@@ -216,19 +172,41 @@ void console_puts(char *str)
 	pthread_mutex_unlock(&mutex);
 }
 
-static void console_parser(char *str)
+static void parse_line(char *str)
 {
+	int count = 0;
+	int i;
 	char *pch;
+	char *words[MAX_LINE_WORDS];
 
-	/* First level parse */
-	pch = strtok(str, " \n");
+	for(pch = strtok(str, " \n"); pch != NULL; pch = strtok(NULL, " \n")) {
+		strcpy(words[count] = malloc((strlen(pch) + 1) * sizeof(char)), pch);
+		count++;
+	}
 
-	if(!strcmp(pch, "add")) {
-		pch = strtok(NULL, " \n");
-		display_add(pch);
+	if(count == 0) { // empty string
+		return;
+	}
+
+	/* Find command */
+	for(i = 0; i < sizeof(cmd) / sizeof(CMDDefinition); i++) {
+		if(!strcmp(cmd[i].name, words[0])) {
+			break;
+		}
+	}
+
+	if(i == sizeof(cmd) / sizeof(CMDDefinition)) { // cmd not found
+		console_puts("Undefined command: \"");
+		console_puts(words[0]);
+		console_puts("\"\n");
 	}
 	else {
-		console_puts("Invalid command!\n");
+		cmd[i].handler(count - 1, (words + 1));
+	}
+
+	/* Free dynamic allocate memory for words */
+	for(i = 0; i < count; i++) {
+		free(words[i]);
 	}
 }
 
@@ -244,9 +222,7 @@ void console_prompt(void)
 		if(c == '\n') {
 			console_putc(c);
 			line_buf[count++] = '\0';
-			if(count > 1) {
-				console_parser(line_buf);
-			}
+			parse_line(line_buf);
 			count = 0;
 			console_puts("-> ");
 		}
@@ -281,4 +257,90 @@ void ui_destroy(void)
 {
 	display_destructor();
 	endwin();
+}
+
+/* Command handler implementation */
+void cmd_display(int argc, char *argv[])
+{
+	HookRegisters *it = hook_head;
+	int i, j;
+	int valid = 0;
+
+	/* Search register in registers array */
+	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
+		for(j = 0; j < reg_array[i].size; j++) {
+			if(!strcmp(reg_array[i].array[j].name, argv[0])) {
+				valid = 1;
+				break;
+			}
+		}
+
+		if(valid) {
+			break;
+		}
+	}
+
+	if(!valid) {
+		console_puts("Invalid register name\n");
+		return;
+	}
+
+	HookRegisters *tmp = (HookRegisters *)malloc(sizeof(HookRegisters));
+	tmp->pos = i;
+	tmp->index = j;
+	tmp->next = NULL;
+	console_puts("Add register ");
+	console_puts(argv[0]);
+	console_puts(" to hook list\n");
+
+	/* First element */
+	if(it == NULL) {
+		hook_head = tmp;
+		return;
+	}
+
+	/* Iterate to last element */
+	for(; it != NULL; it = it->next) {
+		if(!strcmp(reg_array[it->pos].array[it->index].name, argv[0])) {
+			console_puts("Register ");
+			console_puts(argv[0]);
+			console_puts(" has already in hook list\n");
+			return;
+		}
+
+		if(it->next == NULL) {
+			it->next = tmp;
+			break;
+		}
+	}
+}
+
+void cmd_undisplay(int argc, char *argv[])
+{
+	HookRegisters *it = hook_head, *prev;
+
+	if(it == NULL) {
+		console_puts("Display list is empty!\n");
+		return;
+	}
+
+	for(prev = NULL; it != NULL; prev = it, it = it->next) {
+		if(!strcmp(reg_array[it->pos].array[it->index].name, argv[0])) {
+			if(prev == NULL) {
+				hook_head = it->next;
+				free(it);
+			}
+			else {
+				prev->next = it->next;
+				free(it);
+			}
+			console_puts("Undisplay \"");
+			console_puts(argv[0]);
+			console_puts("\"\n");
+			return;
+		}
+	}
+	console_puts("Register \"");
+	console_puts(argv[0]);
+	console_puts("\" is not in the display list!\n");
 }
