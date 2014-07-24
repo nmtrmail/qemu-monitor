@@ -50,11 +50,15 @@ static void *conn_thread(void *arg)
         while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {
 		display_update(packet);
         }
+
+	pthread_exit(0);
 }
 
 static void *prompt_thread(void *arg)
 {
 	console_prompt();
+
+	pthread_exit(0);
 }
 
 int main(int argc, char *argv[])

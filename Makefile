@@ -1,8 +1,28 @@
-all: ui.o fetcher.o
-	gcc -o tracer ui.o fetcher.o -lncurses -lpthread
+TARGET = main
+.DEFAULT_GOAL = all
 
-fetcher.o: fetcher.c ui.c fetcher.h packet.h ui.h
-	gcc -c fetcher.c
+CFLAGS = -Wall -Werror
+DL = -lncurses -lpthread
 
-ui.o: ui.c ui.h fetcher.h
-	gcc -c ui.c
+OUTDIR = build
+SRCDIR = src
+INCDIR = include
+INCLUDES = $(addprefix -I,$(INCDIR))
+
+SRC = $(wildcard $(addsuffix /*.c,$(SRCDIR)))
+OBJ := $(addprefix $(OUTDIR)/,$(patsubst %.s,%.o,$(SRC:.c=.o)))
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	@echo "    LD      "$@
+	@gcc $(CFLAGS) -o $@ $^ $(DL)
+
+
+$(OUTDIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	@echo "    CC      "$@
+	@gcc $(CFLAGS) -o $@ -c $(INCLUDES) $<
+
+clean:
+	rm -rf $(OUTDIR) main
