@@ -78,7 +78,8 @@ int main(int argc, char *argv[])
 	pthread_create(&c_thread, NULL, conn_thread, NULL);
 	pthread_create(&p_thread, NULL, prompt_thread, NULL);
 
-	while(1);
+	/* Block until lost connection */
+	pthread_join(c_thread, NULL);
 
 	/* UI destroy */
 	ui_destroy();
