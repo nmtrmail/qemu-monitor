@@ -177,6 +177,10 @@ static void console_putc(char c)
 		y++;
 		x = 0;
 		break;
+	case '\b':
+		x--;
+		mvwaddch(console_win, y, x, ' ');
+		break;
 	default:
 		mvwaddch(console_win, y, x, c);
 		x++;
@@ -246,10 +250,11 @@ void console_prompt(void)
 			count = 0;
 			console_puts("-> ");
 		}
-		/* FIXME can not recongize backspace */
-		else if(c == 127 || c == 8) {
-			console_putc('b');
-			count--;
+		else if(c == 7) { // backspace
+			if(count > 0) {
+				console_putc('\b');
+				count--;
+			}
 		}
 		else {
 			console_putc(c);
