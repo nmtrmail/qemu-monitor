@@ -8,6 +8,7 @@ OUTDIR = build
 SRCDIR = src
 INCDIR = include
 INCLUDES = $(addprefix -I,$(INCDIR))
+IPCPATH = tools/fetcher
 
 SRC = $(wildcard $(addsuffix /*.c,$(SRCDIR)))
 OBJ := $(addprefix $(OUTDIR)/,$(patsubst %.s,%.o,$(SRC:.c=.o)))
@@ -25,4 +26,4 @@ $(OUTDIR)/%.o: %.c
 	@gcc $(CFLAGS) -o $@ -c $(INCLUDES) $<
 
 clean:
-	rm -rf $(OUTDIR) main
+	rm -rf $(OUTDIR) $(TARGET) $(IPCPATH)
