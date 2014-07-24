@@ -25,11 +25,13 @@ HookRegisters *hook_head;
 /* Command prototype */
 void cmd_display(int argc, char *argv[]);
 void cmd_undisplay(int argc, char *argv[]);
+void cmd_help(int argc, char *argv[]);
 
 /* Command array */
 CMDDefinition cmd[] = {
-	{.name = "display", .handler = cmd_display},
-	{.name = "undisplay", .handler = cmd_undisplay},
+	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display register_name"},
+	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay register_name"},
+	{.name = "help", .handler = cmd_help, .desc = "Show this help guide"},
 };
 
 
@@ -161,10 +163,10 @@ static void console_putc(char c)
 	wrefresh(console_win);
 }
 
-void console_puts(char *str)
+void console_puts(const char *str)
 {
 	pthread_mutex_lock(&mutex);
-	char *cptr;
+	const char *cptr;
 
 	for(cptr = str; *cptr != '\0'; cptr++) {
 		console_putc(*cptr);
@@ -343,4 +345,16 @@ void cmd_undisplay(int argc, char *argv[])
 	console_puts("Register \"");
 	console_puts(argv[0]);
 	console_puts("\" is not in the display list!\n");
+}
+
+void cmd_help(int argc, char *argv[])
+{
+	int i;
+
+	for(i = 0; i < sizeof(cmd) / sizeof(CMDDefinition); i++) {
+		console_puts(cmd[i].name);
+		console_puts(" : ");
+		console_puts(cmd[i].desc);
+		console_puts("\n");
+	}
 }

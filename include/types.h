@@ -126,6 +126,7 @@ typedef void (*CMDHandler)(int, char **);
 typedef struct CMDDefinition {
 	const char *name;
 	CMDHandler handler;
+	const char *desc;
 } CMDDefinition;
 
 #endif
