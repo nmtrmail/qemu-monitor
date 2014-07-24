@@ -1,9 +1,9 @@
 #include <ncurses.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
-#include "packet.h"
-#include "fetcher.h"
+#include "types.h"
 #include "ui.h"
 
 #include "regs.h"
@@ -158,8 +158,11 @@ void display_add(char *input)
  *    * putc - put a character on console
  */
 WINDOW *console_win;
+pthread_mutex_t mutex;
 static void console_init()
 {
+	pthread_mutex_init(&mutex, NULL);
+
 	console_win = newwin(CONSOLE_LINES, CONSOLE_COLS, CONSOLE_Y, CONSOLE_X);
 	wrefresh(console_win);
 }
@@ -200,11 +203,13 @@ static void console_putc(char c)
 
 void console_puts(char *str)
 {
+	pthread_mutex_lock(&mutex);
 	char *cptr;
 
 	for(cptr = str; *cptr != '\0'; cptr++) {
 		console_putc(*cptr);
 	}
+	pthread_mutex_unlock(&mutex);
 }
 
 static void console_parser(char *str)

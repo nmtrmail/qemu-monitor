@@ -1,6 +1,7 @@
 #ifndef __UI_H_
 #define __UI_H_
-#include "fetcher.h"
+
+#include "types.h"
 
 void ui_init(void);
 void ui_destroy(void);
