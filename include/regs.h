@@ -1,8 +1,7 @@
 #ifndef __REGS_H_
 #define __REGS_H_
 
-#include "packet.h"
-#include "fetcher.h"
+#include "types.h"
 
 /* AArch64 identification registers */
 ARMCPRegInfo v8_id[] = {
