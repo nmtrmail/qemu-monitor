@@ -27,6 +27,7 @@ FetcherPacket prev_packet;
 void cmd_display(int argc, char *argv[]);
 void cmd_undisplay(int argc, char *argv[]);
 void cmd_print(int argc, char *argv[]);
+void cmd_refresh(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
 
 /* Command array */
@@ -34,7 +35,8 @@ CMDDefinition cmd[] = {
 	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display register_name"},
 	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay register_name"},
 	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print register_name [end_bit [start_bit]]"},
-	{.name = "help", .handler = cmd_help, .desc = "Show this help guide"},
+	{.name = "refresh", .handler = cmd_refresh, .desc = "Refresh display register window."},
+	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
 
 
@@ -438,6 +440,11 @@ void cmd_print(int argc, char *argv[])
 		sprintf(str, "%s[%d:%d] = 0x%lx\n", tmp.name, end_bit, start_bit, (value & mask) >> start_bit);
 	}
 	console_puts(str);
+}
+
+void cmd_refresh(int argc, char *argv[])
+{
+	display_update(prev_packet);
 }
 
 void cmd_help(int argc, char *argv[])
