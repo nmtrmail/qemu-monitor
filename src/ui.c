@@ -323,6 +323,7 @@ void cmd_display(int argc, char *argv[])
 	/* First element */
 	if(it == NULL) {
 		hook_head = tmp;
+		display_update(prev_packet);
 		return;
 	}
 
@@ -340,6 +341,8 @@ void cmd_display(int argc, char *argv[])
 			break;
 		}
 	}
+
+	display_update(prev_packet);
 }
 
 void cmd_undisplay(int argc, char *argv[])
@@ -364,6 +367,7 @@ void cmd_undisplay(int argc, char *argv[])
 			console_puts("Undisplay \"");
 			console_puts(argv[0]);
 			console_puts("\"\n");
+			display_update(prev_packet);
 			return;
 		}
 	}
