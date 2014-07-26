@@ -21,7 +21,7 @@
 
 /* Global Variables */
 HookRegisters *hook_head;
-FetcherPacket cur_packet;
+FetcherPacket prev_packet;
 
 /* Command prototype */
 void cmd_display(int argc, char *argv[]);
@@ -89,7 +89,7 @@ void display_update(FetcherPacket packet)
 		x = DISPLAY_X + 1;
 	}
 
-	memcpy(&cur_packet, &packet, sizeof(FetcherPacket));
+	memcpy(&prev_packet, &packet, sizeof(FetcherPacket));
 
 	wrefresh(display_win);
 }
@@ -388,10 +388,10 @@ void cmd_print(int argc, char *argv[])
 		value = tmp.const_value;
 		break;
 	case ARM_CP_NORMAL_L:
-		value = *(uint32_t *)((uint8_t *)(&cur_packet) + tmp.fieldoffset);
+		value = *(uint32_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset);
 		break;
 	case ARM_CP_NORMAL_H:
-		value = *(uint64_t *)((uint8_t *)(&cur_packet) + tmp.fieldoffset);
+		value = *(uint64_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset);
 		break;
 	}
 
