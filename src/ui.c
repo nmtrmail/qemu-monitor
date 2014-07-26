@@ -229,26 +229,37 @@ static void parse_line(char *str)
 void console_prompt(void)
 {
 	char line_buf[128];
-	char c;
+	int c;
 	int count = 0;
 
 	console_puts("-> ");
 	while(1) {
 		c = getch();
-		if(c == '\n') {
-			console_putc(c);
+		switch(c) {
+		case '\n':
+			console_putc('\n');
 			line_buf[count++] = '\0';
 			parse_line(line_buf);
 			count = 0;
 			console_puts("-> ");
-		}
-		else if(c == 7) { // backspace
+			break;
+		// TODO: command history
+		case KEY_DOWN:
+			break;
+		case KEY_UP:
+			break;
+		// TODO: console command cursor movement
+		case KEY_LEFT:
+			break;
+		case KEY_RIGHT:
+			break;
+		case KEY_BACKSPACE:
 			if(count > 0) {
 				console_putc('\b');
 				count--;
 			}
-		}
-		else {
+			break;
+		default:
 			console_putc(c);
 			line_buf[count++] = c;
 		}
