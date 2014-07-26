@@ -143,6 +143,7 @@ static void console_putc(char c)
 	case '\b':
 		x--;
 		mvwaddch(console_win, y, x, ' ');
+		wmove(console_win, y, x);
 		break;
 	default:
 		mvwaddch(console_win, y, x, c);
