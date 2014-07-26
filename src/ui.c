@@ -79,10 +79,18 @@ void display_update(FetcherPacket packet)
 			mvwprintw(display_win, y, x, "0x%lx", tmp.const_value);
 			break;
 		case ARM_CP_NORMAL_L:
+			if(*(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset) != *(uint32_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset)) {
+				wattron(display_win, A_BOLD | A_UNDERLINE);
+			}
 			mvwprintw(display_win, y, x, "0x%x", *(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset));
+			wattroff(display_win, A_BOLD | A_UNDERLINE);
 			break;
 		case ARM_CP_NORMAL_H:
+			if(*(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset) != *(uint64_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset)) {
+				wattron(display_win, A_BOLD | A_UNDERLINE);
+			}
 			mvwprintw(display_win, y, x, "0x%lx", *(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset));
+			wattroff(display_win, A_BOLD | A_UNDERLINE);
 			break;
 		}
 		y++;
