@@ -152,7 +152,6 @@ static void console_putc(char c)
 		break;
 	case '\b':
 		x--;
-		mvwaddch(console_win, y, x, ' ');
 		wmove(console_win, y, x);
 		break;
 	default:
@@ -257,6 +256,8 @@ void console_prompt(void)
 			break;
 		case KEY_BACKSPACE:
 			if(count > 0) {
+				console_putc('\b');
+				console_putc(' ');
 				console_putc('\b');
 				count--;
 			}
