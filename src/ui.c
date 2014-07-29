@@ -27,6 +27,7 @@ FetcherPacket prev_packet;
 void cmd_display(int argc, char *argv[]);
 void cmd_undisplay(int argc, char *argv[]);
 void cmd_print(int argc, char *argv[]);
+void cmd_store(int argc, char *argv[]);
 void cmd_refresh(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
 
@@ -35,6 +36,7 @@ CMDDefinition cmd[] = {
 	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display $register_name[end_bit:start_bit]"},
 	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay display_number"},
 	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print /x $register_name[end_bit:start_bit]"},
+	{.name = "store", .handler = cmd_store, .desc = "Store display register list. -> store file_name"},
 	{.name = "refresh", .handler = cmd_refresh, .desc = "Refresh display register window."},
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
@@ -528,6 +530,37 @@ void cmd_print(int argc, char *argv[])
 		sprintf(str, "Invalid format\n");
 	}
 	console_puts(str);
+}
+
+void cmd_store(int argc, char *argv[])
+{
+	HookRegisters *it;
+	char filename[32] = "cli.cmd"; // default output file name
+	FILE *fout;
+
+	if(argc > 1) {
+		console_puts("Too many arguments\n");
+		return;
+	}
+
+	if(argc == 1) {
+		strncpy(filename, argv[0], 32);
+	}
+
+	// TODO: file process exception handling
+	fout = fopen(filename, "w");
+
+	for(it = hook_head; it != NULL; it = it->next) {
+		fprintf(fout, "display %s\n", it->name);
+	}
+
+	fclose(fout);
+
+	console_puts("Store display list to \"");
+	console_puts(filename);
+	console_puts("\"\n");
+
+	return;
 }
 
 void cmd_refresh(int argc, char *argv[])
