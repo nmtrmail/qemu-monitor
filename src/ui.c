@@ -28,6 +28,7 @@ void cmd_display(int argc, char *argv[]);
 void cmd_undisplay(int argc, char *argv[]);
 void cmd_print(int argc, char *argv[]);
 void cmd_store(int argc, char *argv[]);
+void cmd_load(int argc, char *argv[]);
 void cmd_refresh(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
 
@@ -37,6 +38,7 @@ CMDDefinition cmd[] = {
 	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay display_number"},
 	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print /x $register_name[end_bit:start_bit]"},
 	{.name = "store", .handler = cmd_store, .desc = "Store display register list. -> store file_name"},
+	{.name = "load", .handler = cmd_load, .desc = "Load command script. -> load file_name"},
 	{.name = "refresh", .handler = cmd_refresh, .desc = "Refresh display register window."},
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
@@ -551,16 +553,43 @@ void cmd_store(int argc, char *argv[])
 	fout = fopen(filename, "w");
 
 	for(it = hook_head; it != NULL; it = it->next) {
-		fprintf(fout, "display %s\n", it->name);
+		fprintf(fout, "display $%s\n", it->name);
 	}
-
-	fclose(fout);
 
 	console_puts("Store display list to \"");
 	console_puts(filename);
 	console_puts("\"\n");
+	fclose(fout);
+}
 
-	return;
+void cmd_load(int argc, char *argv[])
+{
+	char filename[32] = "cli.cmd"; // default input file name
+	char line_buf[128] = {0};
+	FILE *fin;
+
+	if(argc > 1) {
+		console_puts("Too many arguments\n");
+		return;
+	}
+
+	if(argc == 1) {
+		strncpy(filename, argv[0], 32);
+	}
+
+	// TODO: file process exception handling
+	fin = fopen(filename, "r");
+	console_puts("Load command script from \"");
+	console_puts(filename);
+	console_puts("\"\n");
+
+	while(fgets(line_buf, 128, fin) != NULL) {
+		console_puts("-> ");
+		console_puts(line_buf);
+		parse_line(line_buf);
+	}
+
+	fclose(fin);
 }
 
 void cmd_refresh(int argc, char *argv[])
