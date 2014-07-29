@@ -32,9 +32,9 @@ void cmd_help(int argc, char *argv[]);
 
 /* Command array */
 CMDDefinition cmd[] = {
-	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display register_name"},
-	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay register_name"},
-	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print register_name [end_bit [start_bit]]"},
+	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display $register_name[end_bit:start_bit]"},
+	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay display_number"},
+	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print /x $register_name[end_bit:start_bit]"},
 	{.name = "refresh", .handler = cmd_refresh, .desc = "Refresh display register window."},
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
@@ -389,8 +389,14 @@ void cmd_display(int argc, char *argv[])
 
 void cmd_undisplay(int argc, char *argv[])
 {
-	/*
 	HookRegisters *it = hook_head, *prev;
+	int id;
+
+	if(argc > 1) {
+		console_puts("Too many arguments\n");
+	}
+
+	id = atoi(argv[0]);
 
 	if(it == NULL) {
 		console_puts("Display list is empty!\n");
@@ -398,7 +404,10 @@ void cmd_undisplay(int argc, char *argv[])
 	}
 
 	for(prev = NULL; it != NULL; prev = it, it = it->next) {
-		if(!strcmp(reg_array[it->pos].array[it->index].name, argv[0])) {
+		if(it->id == id) {
+			console_puts("Undisplay \"");
+			console_puts(it->name);
+			console_puts("\"\n");
 			if(prev == NULL) {
 				hook_head = it->next;
 				free(it);
@@ -407,17 +416,13 @@ void cmd_undisplay(int argc, char *argv[])
 				prev->next = it->next;
 				free(it);
 			}
-			console_puts("Undisplay \"");
-			console_puts(argv[0]);
-			console_puts("\"\n");
 			display_update(prev_packet);
 			return;
 		}
 	}
-	console_puts("Register \"");
+	console_puts("Display number ");
 	console_puts(argv[0]);
-	console_puts("\" is not in the display list!\n");
-	*/
+	console_puts(" is not in the hook list!\n");
 }
 
 void cmd_print(int argc, char *argv[])
@@ -425,12 +430,56 @@ void cmd_print(int argc, char *argv[])
 	ARMCPRegInfo tmp;
 	uint64_t value;
 	int valid = 0, i, j;
+	int start_bit = 0, end_bit;
 	char str[128] = {0};
+	char reg_name[64] = {0};
+	char reg[64] = {0};
+	char format = 'x'; // default format hexadecimal
+	char *pch;
+	uint64_t mask = 0xFFFFFFFFFFFFFFFF;
+
+	/* Print register format:
+	 * print $MIDR[31:16]
+	 * print /x $MIDR[31:16] (x, d, u, o)
+	 */
+	if(argc == 1) {
+		strncpy(reg, argv[0], 64);
+	}
+	else if(argc == 2) {
+		if(argv[0][0] != '/') {
+			console_puts("Invalid format\n");
+			return;
+		}
+		format = argv[0][1];
+		strncpy(reg, argv[1], 64);
+	}
+	else {
+		console_puts("Too many arguments\n");
+		return;
+	}
+
+	if(reg[0] != '$') {
+		console_puts("Invalid register name\n");
+		return;
+	}
+	
+	pch = strchr(reg, '[');
+	if(pch != NULL) {
+		sscanf(pch, "[%d:%d]", &end_bit, &start_bit);
+		strncpy(reg_name, reg + 1, pch - reg - 1);
+		int len = end_bit - start_bit;
+		mask >>= (63 - len);
+		mask <<= start_bit;
+	}
+	else {
+		strncpy(reg_name, reg + 1, 64);
+	}
+		
 
 	/* Search register in registers array */
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
-			if(!strcmp(reg_array[i].array[j].name, argv[0])) {
+			if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				tmp = reg_array[i].array[j];
 				break;
@@ -462,24 +511,21 @@ void cmd_print(int argc, char *argv[])
 		break;
 	}
 
-	uint64_t mask = 0xFFFFFFFFFFFFFFFF;
-	if(argc == 1) {
-		sprintf(str, "%s = 0x%lx\n", tmp.name, value);
-	}
-	else if(argc == 2) {
-		int end_bit = atoi(argv[1]);
-		mask >>= (63 - end_bit);
-		sprintf(str, "%s[%d:0] = 0x%lx\n", tmp.name, end_bit, value & mask);
-	}
-	else if(argc == 3) {
-		int end_bit, start_bit;
-		end_bit = atoi(argv[1]);
-		start_bit = atoi(argv[2]);
-		int len = end_bit - start_bit;
-
-		mask >>= (63 - len);
-		mask <<= start_bit;
-		sprintf(str, "%s[%d:%d] = 0x%lx\n", tmp.name, end_bit, start_bit, (value & mask) >> start_bit);
+	switch(format) {
+	case 'o':
+		sprintf(str, "%s = %#lo\n", reg + 1, (value & mask) >> start_bit);
+		break;
+	case 'x':
+		sprintf(str, "%s = %#lx\n", reg + 1, (value & mask) >> start_bit);
+		break;
+	case 'd':
+		sprintf(str, "%s = %ld\n", reg + 1, (value & mask) >> start_bit);
+		break;
+	case 'u':
+		sprintf(str, "%s = %lu\n", reg + 1, (value & mask) >> start_bit);
+		break;
+	default:
+		sprintf(str, "Invalid format\n");
 	}
 	console_puts(str);
 }
