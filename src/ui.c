@@ -70,28 +70,31 @@ void display_update(FetcherPacket packet)
 	box(display_win, 0, 0);
 
 	for(it = hook_head; it != NULL; it = it->next) {
-		ARMCPRegInfo tmp = reg_array[it->pos].array[it->index];
-		mvwprintw(display_win, y, x, "%-16s = ", tmp.name);
-		x += 19;
-		switch(tmp.type) {
+		mvwprintw(display_win, y, x, "%d: %-23s = ", it->id, it->name);
+		x += 30;
+		switch(it->type) {
 		case ARM_CP_UNIMPL:
 			mvwprintw(display_win, y, x, "UNIMPLEMENTED");
 			break;
 		case ARM_CP_CONST:
-			mvwprintw(display_win, y, x, "0x%lx", tmp.const_value);
+			mvwprintw(display_win, y, x, "0x%lx", it->const_value);
 			break;
 		case ARM_CP_NORMAL_L:
-			if(*(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset) != *(uint32_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset)) {
+			if((*(uint32_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask)
+			   != (*(uint32_t *)((uint8_t *)(&prev_packet) + it->fieldoffset) & it->mask)) {
 				wattron(display_win, A_BOLD | A_UNDERLINE);
 			}
-			mvwprintw(display_win, y, x, "0x%x", *(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset));
+			mvwprintw(display_win, y, x, "0x%x",
+			          (*(uint32_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			wattroff(display_win, A_BOLD | A_UNDERLINE);
 			break;
 		case ARM_CP_NORMAL_H:
-			if(*(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset) != *(uint64_t *)((uint8_t *)(&prev_packet) + tmp.fieldoffset)) {
+			if((*(uint64_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask)
+			   != (*(uint64_t *)((uint8_t *)(&prev_packet) + it->fieldoffset) & it->mask)) {
 				wattron(display_win, A_BOLD | A_UNDERLINE);
 			}
-			mvwprintw(display_win, y, x, "0x%lx", *(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset));
+			mvwprintw(display_win, y, x, "0x%lx",
+			          (*(uint64_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			wattroff(display_win, A_BOLD | A_UNDERLINE);
 			break;
 		}
@@ -295,11 +298,40 @@ void cmd_display(int argc, char *argv[])
 	HookRegisters *it = hook_head;
 	int i, j;
 	int valid = 0;
+	int start_bit = 0, end_bit;
+	uint64_t mask = 0xFFFFFFFFFFFFFFFF;
+	char *pch;
+	char reg_name[64];
+
+	if(argc > 1) {
+		console_puts("Too many arguments\n");
+		return;
+	}
+
+	/* Parse register name.
+	 * Register name format: leading dollar sign and optional bit field
+	 * $reg_name, $reg_name[end_bit:start_bit]
+	 */
+	if(argv[0][0] != '$') {
+		console_puts("Invalid register name\n");
+		return;
+	}
+	if((pch = strchr(argv[0], '[')) != NULL) {
+		sscanf(pch, "[%d:%d]", &end_bit, &start_bit);
+		int len = end_bit - start_bit;
+
+		mask >>= (63 - len);
+		mask <<= start_bit;
+		strncpy(reg_name, argv[0] + 1, pch - argv[0] - 1);
+	}
+	else {
+		strncpy(reg_name, argv[0] + 1, 64);
+	}
 
 	/* Search register in registers array */
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
-			if(!strcmp(reg_array[i].array[j].name, argv[0])) {
+			if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				break;
 			}
@@ -316,15 +348,21 @@ void cmd_display(int argc, char *argv[])
 	}
 
 	HookRegisters *tmp = (HookRegisters *)malloc(sizeof(HookRegisters));
-	tmp->pos = i;
-	tmp->index = j;
+	strncpy(tmp->name, argv[0] + 1, 64);
 	tmp->next = NULL;
-	console_puts("Add register ");
+	tmp->mask = mask;
+	tmp->const_value = reg_array[i].array[j].const_value;
+	tmp->type = reg_array[i].array[j].type;
+	tmp->fieldoffset = reg_array[i].array[j].fieldoffset;
+	tmp->start_bit = start_bit;
+
+	console_puts("Add register \"");
 	console_puts(argv[0]);
-	console_puts(" to hook list\n");
+	console_puts("\" to hook list\n");
 
 	/* First element */
 	if(it == NULL) {
+		tmp->id = 0;
 		hook_head = tmp;
 		display_update(prev_packet);
 		return;
@@ -332,14 +370,15 @@ void cmd_display(int argc, char *argv[])
 
 	/* Iterate to last element */
 	for(; it != NULL; it = it->next) {
-		if(!strcmp(reg_array[it->pos].array[it->index].name, argv[0])) {
-			console_puts("Register ");
-			console_puts(argv[0]);
-			console_puts(" has already in hook list\n");
+		if(!strcmp(it->name, argv[0] + 1)) {
+			console_puts("Register \"");
+			console_puts(argv[0] + 1);
+			console_puts("\" has already in hook list\n");
 			return;
 		}
 
 		if(it->next == NULL) {
+			tmp->id = it->id + 1;
 			it->next = tmp;
 			break;
 		}
@@ -350,6 +389,7 @@ void cmd_display(int argc, char *argv[])
 
 void cmd_undisplay(int argc, char *argv[])
 {
+	/*
 	HookRegisters *it = hook_head, *prev;
 
 	if(it == NULL) {
@@ -377,6 +417,7 @@ void cmd_undisplay(int argc, char *argv[])
 	console_puts("Register \"");
 	console_puts(argv[0]);
 	console_puts("\" is not in the display list!\n");
+	*/
 }
 
 void cmd_print(int argc, char *argv[])

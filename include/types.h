@@ -111,8 +111,13 @@ typedef struct ARMCPRegArray {
  * ex. reg_array[pos].array[index].name
  */
 typedef struct HookRegisters {
-	int pos;
-	int index;
+	int id;
+	char name[64];
+	uint8_t type;
+	ptrdiff_t fieldoffset;
+	uint64_t const_value;
+	uint64_t mask;
+	int start_bit;
 	struct HookRegisters *next;
 } HookRegisters;
 
