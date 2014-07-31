@@ -236,7 +236,7 @@ static void parse_line(char *str)
 
 void console_prompt(void)
 {
-	char line_buf[128];
+	char line_buf[MAX_LINE_WORDS];
 	int c;
 	int count = 0;
 
@@ -246,7 +246,12 @@ void console_prompt(void)
 		switch(c) {
 		case '\n':
 			console_putc('\n');
-			line_buf[count++] = '\0';
+			if(count == MAX_LINE_WORDS) {
+				line_buf[MAX_LINE_WORDS - 1] = '\0';
+			}
+			else {
+				line_buf[count] = '\0';
+			}
 			parse_line(line_buf);
 			count = 0;
 			console_puts("-> ");
@@ -271,7 +276,9 @@ void console_prompt(void)
 			break;
 		default:
 			console_putc(c);
-			line_buf[count++] = c;
+			if(count < MAX_LINE_WORDS) {
+				line_buf[count++] = c;
+			}
 		}
 	}
 }
@@ -326,7 +333,7 @@ void cmd_display(int argc, char *argv[])
 
 		mask >>= (63 - len);
 		mask <<= start_bit;
-		strncpy(reg_name, argv[0] + 1, pch - argv[0] - 1);
+		strncpy(reg_name, argv[0] + 1, pch - argv[0] - 1 < 64 ? pch - argv[0] - 1 : 64);
 	}
 	else {
 		strncpy(reg_name, argv[0] + 1, 64);
@@ -470,7 +477,7 @@ void cmd_print(int argc, char *argv[])
 	pch = strchr(reg, '[');
 	if(pch != NULL) {
 		sscanf(pch, "[%d:%d]", &end_bit, &start_bit);
-		strncpy(reg_name, reg + 1, pch - reg - 1);
+		strncpy(reg_name, reg + 1, pch - reg - 1 < 64 ? pch - reg - 1 : 64);
 		int len = end_bit - start_bit;
 		mask >>= (63 - len);
 		mask <<= start_bit;
