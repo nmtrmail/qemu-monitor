@@ -16,10 +16,10 @@ QEMU-Debug-Tool
    4. Enter command in debug tool and then debug with gdb
 
 ### Command Usage ###
-   * display $register_name[end_bit:start_bit] - auto display registers along with gdb
-   * undisplay display_number - disable auto display register which specified by display_number
-   * print /x $register_name[end_bit:start_bit] - print value of register in format x(d, u, o)
-   * store filename - store current display registers to filename, which could be used in load command
-   * load filename - load a command script, like gdb -x
-   * refresh - refresh display window
-   * help - show help guide
+   * `display $register_name[end_bit:start_bit]` - auto display registers along with gdb
+   * `undisplay display_number` - disable auto display register which specified by display_number
+   * `print /x $register_name[end_bit:start_bit]` - print value of register in format x(d, u, o)
+   * `store filename` - store current display registers to filename, which could be used in load command
+   * `load filename` - load a command script, like gdb -x
+   * `refresh` - refresh display window
+   * `help` - show help guide
