@@ -1,8 +1,10 @@
-TARGET = main
+TARGET = qemu-monitor
 .DEFAULT_GOAL = all
 
 CFLAGS = -Wall -Werror
 DL = -lncurses -lpthread
+
+PREFIX := /usr/local/bin
 
 OUTDIR = build
 SRCDIR = src
@@ -24,6 +26,10 @@ $(OUTDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
 	@echo "    CC      "$@
 	@gcc $(CFLAGS) -o $@ -c $(INCLUDES) $<
+
+install: $(TARGET)
+	@echo "  INSTALL   "$(TARGET)
+	@install $(TARGET) $(PREFIX)/$(TARGET)
 
 clean:
 	rm -rf $(OUTDIR) $(TARGET) $(IPCPATH)
