@@ -45,6 +45,7 @@ CMDDefinition cmd[] = {
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
 
+static void console_putc(char c);
 
 /* UI Design
  * Split the whole window to two parts:
@@ -88,6 +89,8 @@ void display_status(int toggle)
 	wattroff(display_win, A_BOLD);
 
 	wrefresh(display_win);
+
+	console_putc('\0');
 }
 
 void display_update(FetcherPacket packet)
@@ -136,6 +139,8 @@ void display_update(FetcherPacket packet)
 	display_status(0);
 
 	wrefresh(display_win);
+
+	console_putc('\0');
 }
 
 /* Free dynamic allocate memory */
@@ -186,6 +191,10 @@ static void console_putc(char c)
 		break;
 	case '\b':
 		x--;
+		wmove(console_win, y, x);
+		break;
+	// XXX: This is a speical case, use \0 to move cursor to current prompt postion
+	case '\0':
 		wmove(console_win, y, x);
 		break;
 	default:
