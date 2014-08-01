@@ -30,6 +30,7 @@ void cmd_print(int argc, char *argv[]);
 void cmd_store(int argc, char *argv[]);
 void cmd_load(int argc, char *argv[]);
 void cmd_refresh(int argc, char *argv[]);
+void cmd_quit(int argc, char *argv[]);
 void cmd_help(int argc, char *argv[]);
 
 /* Command array */
@@ -40,6 +41,7 @@ CMDDefinition cmd[] = {
 	{.name = "store", .handler = cmd_store, .desc = "Store display register list. -> store file_name"},
 	{.name = "load", .handler = cmd_load, .desc = "Load command script. -> load file_name"},
 	{.name = "refresh", .handler = cmd_refresh, .desc = "Refresh display register window."},
+	{.name = "quit", .handler = cmd_quit, .desc = "Terminate qemu-monitor."},
 	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
 };
 
@@ -627,6 +629,11 @@ void cmd_load(int argc, char *argv[])
 void cmd_refresh(int argc, char *argv[])
 {
 	display_update(prev_packet);
+}
+
+void cmd_quit(int argc, char *argv[])
+{
+	pthread_exit(0);
 }
 
 void cmd_help(int argc, char *argv[])
