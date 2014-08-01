@@ -1,6 +1,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -17,43 +19,63 @@
 
 /* Global variables */
 FILE *fp;
-int s;
+
+/* Used for unused parameters to silence gcc warnings */
+#define UNUSED __attribute__((__unused__))
 
 /* IPC socket connection */
 static void conn(void)
 {
-        int len;
-        struct sockaddr_un saun;
-        if ((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-                console_puts("\nclient: socket\n");
+        int ns, s, len;
+	socklen_t fromlen UNUSED;
+
+	fromlen = 0;
+
+        struct sockaddr_un saun, fsaun;
+        if((s = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+                console_puts("Server: Socket");
         }
 
         saun.sun_family = AF_UNIX;
         strcpy(saun.sun_path, ADDRESS);
 
+        unlink(ADDRESS);
         len = sizeof(saun.sun_family) + strlen(saun.sun_path);
 
-        if (connect(s, (struct sockaddr *)&saun, len) < 0) {
-		printw("%d", errno);
-                console_puts("\nclient: connect\n");
+	// XXX bind() need a const struct sockaddr pointer as argument...
+	const struct sockaddr *saun_const = (struct sockaddr *)&saun;
+        if(bind(s, saun_const, len) < 0) {
+                console_puts("Server: Bind");
         }
 
-        fp = fdopen(s, "r");
+        if(listen(s, 5) < 0) {
+                console_puts("Server: Listen");
+        }
+
+        if((ns = accept(s, (struct sockaddr *)&fsaun, &fromlen)) < 0) {
+                console_puts("Server: Accept");
+        }
+
+	fp = fdopen(ns, "r");
 }
 
 static void *conn_thread(void *arg)
 {
 	FetcherPacket packet = {0};
 
-	/* Connect to QEMU */
-        conn();
+	while(1) {
+		/* Connect to QEMU */
+		conn();
+		display_status(1);
 
-	/* Handle each packet received from QEMU */
-        while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {
-		display_update(packet);
-        }
+		/* Handle each packet received from QEMU */
+		while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {
+			display_update(packet);
+		}
+		display_status(1);
+	}
 
-	pthread_exit(0);
+	return 0;
 }
 
 static void *prompt_thread(void *arg)
@@ -78,7 +100,7 @@ int main(int argc, char *argv[])
 	pthread_create(&p_thread, NULL, prompt_thread, NULL);
 
 	/* Block until lost connection */
-	pthread_join(c_thread, NULL);
+	pthread_join(p_thread, NULL);
 
 	/* UI destroy */
 	ui_destroy();

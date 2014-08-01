@@ -61,6 +61,29 @@ static void display_init()
 	 * and with border around */
 	display_win = newwin(DISPLAY_LINES, DISPLAY_COLS, DISPLAY_Y, DISPLAY_X);
 	box(display_win, 0, 0);
+	display_status(0);
+
+	wrefresh(display_win);
+}
+
+void display_status(int toggle)
+{
+	static int on = 0;
+
+	if(toggle) {
+		on = !on;
+	}
+
+	box(display_win, 0, 0);
+
+	wattron(display_win, A_BOLD);
+	if(on) {
+		mvwprintw(display_win, DISPLAY_LINES - 1, DISPLAY_X + 1, "Connected");
+	}
+	else {
+		mvwprintw(display_win, DISPLAY_LINES - 1, DISPLAY_X + 1, "Disconnected");
+	}
+	wattroff(display_win, A_BOLD);
 
 	wrefresh(display_win);
 }
@@ -107,6 +130,8 @@ void display_update(FetcherPacket packet)
 	}
 
 	memcpy(&prev_packet, &packet, sizeof(FetcherPacket));
+
+	display_status(0);
 
 	wrefresh(display_win);
 }
