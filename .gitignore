@@ -1,7 +1,7 @@
 *.swp
 tmp/
 build/
-main
+qemu-monitor
 tools/fetcher
 *.out
 *.cmd
