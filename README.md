@@ -3,7 +3,11 @@ QEMU-Debug-Tool
 ## User Guide ##
 ### Environment Setup ###
    1. Build qemu-system-aarch64, kernel and rootfs
-      * Put `external/*` into `qemu/target-arm/`, then build
+      * copy `qemu-patch/qemu.patch` to qemu directory
+      * cd to qemu directory
+      * $ patch -p1 < ./qemu.patch
+      * $ ./configure --target-list=aarch64-softmmu
+      * $ make -j8
    2. Download pre-built gdb(aarch64) from linaro release website
    3. Open `tools/run_linux.sh`, modify QEMU and kernel's path
    4. Open `tools/run_gdb.sh`, modify gdb's path
