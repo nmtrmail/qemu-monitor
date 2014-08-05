@@ -82,7 +82,7 @@ diff -ruN qemu.origin/target-arm/fetcher.c qemu.new/target-arm/fetcher.c
 +	dst->CSSELR_EL1 = env->cp15.c0_cssel;
 +	dst->DCZID_EL0 = cpu->dcz_blocksize | (1 << 4);
 +	dst->ESR_EL1 = env->cp15.esr_el[1];
-+	dst->FAR_EL1 = env->cp15.far_el1;
++	dst->FAR_EL1 = env->cp15.far_el[1];
 +	dst->VBAR_EL1 = env->cp15.vbar_el[1];
 +	dst->ISR_EL1 = 0;
 +	if(cs->interrupt_request & 0x0002) { // XXX: Hardcode CPU_INTERRUPT_HARD
