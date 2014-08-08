@@ -1,6 +1,6 @@
-diff -ruN qemu.origin/gdbstub.c qemu.new/gdbstub.c
---- qemu.origin/gdbstub.c	2014-08-01 12:50:57.042295172 +0800
-+++ qemu.new/gdbstub.c	2014-08-01 11:51:05.634252702 +0800
+diff -ruN qemu_origin/gdbstub.c qemu_modify/gdbstub.c
+--- qemu_origin/gdbstub.c	2014-08-08 18:12:16.200925412 +0800
++++ qemu_modify/gdbstub.c	2014-08-08 18:21:17.664918026 +0800
 @@ -33,6 +33,7 @@
  #include "sysemu/char.h"
  #include "sysemu/sysemu.h"
@@ -17,23 +17,19 @@ diff -ruN qemu.origin/gdbstub.c qemu.new/gdbstub.c
  
      /* disable single step if it was enabled */
      cpu_single_step(cpu, 0);
-@@ -1672,6 +1674,12 @@
+@@ -1672,6 +1674,8 @@
      CharDriverState *chr = NULL;
      CharDriverState *mon_chr;
  
-+    /* Fetcher */
-+    printf("Connect to qemu-monitor...");
 +    fetcher_start();
-+    printf("Success!\n");
-+    /* End of Fetcher */
 +
      if (!device)
          return -1;
      if (strcmp(device, "none") != 0) {
-diff -ruN qemu.origin/target-arm/fetcher.c qemu.new/target-arm/fetcher.c
---- qemu.origin/target-arm/fetcher.c	1970-01-01 08:00:00.000000000 +0800
-+++ qemu.new/target-arm/fetcher.c	2014-08-01 12:50:12.682294647 +0800
-@@ -0,0 +1,105 @@
+diff -ruN qemu_origin/target-arm/fetcher.c qemu_modify/target-arm/fetcher.c
+--- qemu_origin/target-arm/fetcher.c	1970-01-01 08:00:00.000000000 +0800
++++ qemu_modify/target-arm/fetcher.c	2014-08-08 18:21:47.464917619 +0800
+@@ -0,0 +1,115 @@
 +#include <stdio.h>
 +#include <string.h>
 +#include <sys/types.h>
@@ -49,14 +45,19 @@ diff -ruN qemu.origin/target-arm/fetcher.c qemu.new/target-arm/fetcher.c
 +#define ADDRESS "fetcher"
 +
 +static int ns = 0;
++static int failed = 0;
 +
 +void fetcher_start(void)
 +{
 +        int len;
 +        struct sockaddr_un saun;
++
++	printf("Connect to qemu-monitor... ");
++	fflush(stdout);
++	/* Ignore connection error, bypass */
 +        if ((ns = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-+		perror("Socket error!");
-+		exit(1);
++		printf("socket error\n");
++		return;
 +        }
 +
 +        saun.sun_family = AF_UNIX;
@@ -64,10 +65,13 @@ diff -ruN qemu.origin/target-arm/fetcher.c qemu.new/target-arm/fetcher.c
 +
 +        len = sizeof(saun.sun_family) + strlen(saun.sun_path);
 +
++	/* Ignore connection error, bypass */
 +        if (connect(ns, (struct sockaddr *)&saun, len) < 0) {
-+		perror("Can not connect to qemu-monitor, run qemu-monitor first\n");
-+		exit(1);
++		printf("can not connect to qemu-monitor, run qemu-monitor first\n");
++		failed = 1;
++		return;
 +        }
++	printf("successful!\n");
 +}
 +
 +static void copy_register(FetcherPacket *dst, CPUState *cs)
@@ -135,13 +139,15 @@ diff -ruN qemu.origin/target-arm/fetcher.c qemu.new/target-arm/fetcher.c
 +void fetcher_trans(CPUState *cs)
 +{
 +	static FetcherPacket packet;
-+	copy_register(&packet, cs);
 +
-+	send(ns, &packet, sizeof(FetcherPacket), 0);
++	if(!failed) {
++		copy_register(&packet, cs);
++		send(ns, &packet, sizeof(FetcherPacket), 0);
++	}
 +}
-diff -ruN qemu.origin/target-arm/fetcher.h qemu.new/target-arm/fetcher.h
---- qemu.origin/target-arm/fetcher.h	1970-01-01 08:00:00.000000000 +0800
-+++ qemu.new/target-arm/fetcher.h	2014-08-01 11:51:20.162252874 +0800
+diff -ruN qemu_origin/target-arm/fetcher.h qemu_modify/target-arm/fetcher.h
+--- qemu_origin/target-arm/fetcher.h	1970-01-01 08:00:00.000000000 +0800
++++ qemu_modify/target-arm/fetcher.h	2014-08-08 18:21:47.464917619 +0800
 @@ -0,0 +1,9 @@
 +#ifndef FETCHER_H
 +#define FETCHER_H
@@ -152,17 +158,17 @@ diff -ruN qemu.origin/target-arm/fetcher.h qemu.new/target-arm/fetcher.h
 +void fetcher_trans(CPUState *cs);
 +
 +#endif
-diff -ruN qemu.origin/target-arm/Makefile.objs qemu.new/target-arm/Makefile.objs
---- qemu.origin/target-arm/Makefile.objs	2014-08-01 12:50:52.074295113 +0800
-+++ qemu.new/target-arm/Makefile.objs	2014-08-01 11:51:20.162252874 +0800
+diff -ruN qemu_origin/target-arm/Makefile.objs qemu_modify/target-arm/Makefile.objs
+--- qemu_origin/target-arm/Makefile.objs	2014-08-08 18:12:16.400925409 +0800
++++ qemu_modify/target-arm/Makefile.objs	2014-08-08 18:21:47.464917619 +0800
 @@ -9,3 +9,4 @@
  obj-y += gdbstub.o
  obj-$(TARGET_AARCH64) += cpu64.o translate-a64.o helper-a64.o gdbstub64.o
  obj-y += crypto_helper.o
 +obj-y += fetcher.o
-diff -ruN qemu.origin/target-arm/packet.h qemu.new/target-arm/packet.h
---- qemu.origin/target-arm/packet.h	1970-01-01 08:00:00.000000000 +0800
-+++ qemu.new/target-arm/packet.h	2014-08-01 11:51:20.162252874 +0800
+diff -ruN qemu_origin/target-arm/packet.h qemu_modify/target-arm/packet.h
+--- qemu_origin/target-arm/packet.h	1970-01-01 08:00:00.000000000 +0800
++++ qemu_modify/target-arm/packet.h	2014-08-08 18:21:47.464917619 +0800
 @@ -0,0 +1,80 @@
 +#ifndef __PACKET_H_
 +#define __PACKET_H_
