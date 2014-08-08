@@ -367,22 +367,44 @@ static void cmd_list(int argc, char *argv[])
 
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		printf("======== %s\n", reg_array[i].name);
-		for(j = 0; j < reg_array[i].size; j++) {
+		for(j = 0; j < reg_array[i].size; j += 2) {
 			ARMCPRegInfo tmp = reg_array[i].array[j];
-			printf("%s = ", tmp.name);
+			printf("%-16s = ", tmp.name);
 			switch(tmp.type) {
 			case ARM_CP_UNIMPL:
-				printf("UNIMPLEMENTED\n");
+				printf("%-18s", "UNIMPLEMENTED");
 				break;
 			case ARM_CP_CONST:
-				printf("0x%lx\n", tmp.const_value);
+				printf("0x%-16lx", tmp.const_value);
 				break;
 			case ARM_CP_NORMAL_L:
-				printf("0x%x\n",
+				printf("0x%-16x",
 				        (uint32_t)(*(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
 				break;
 			case ARM_CP_NORMAL_H:
-				printf("0x%lx\n",
+				printf("0x%-16lx",
+					(*(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
+				break;
+			}
+			if(j + 1 == reg_array[i].size) {
+				printf("\n");
+				break;
+			}
+			tmp = reg_array[i].array[j + 1];
+			printf(" | %-16s = ", tmp.name);
+			switch(tmp.type) {
+			case ARM_CP_UNIMPL:
+				printf("%-18s\n", "UNIMPLEMENTED");
+				break;
+			case ARM_CP_CONST:
+				printf("0x%-16lx\n", tmp.const_value);
+				break;
+			case ARM_CP_NORMAL_L:
+				printf("0x%-16x\n",
+				        (uint32_t)(*(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
+				break;
+			case ARM_CP_NORMAL_H:
+				printf("0x%-16lx\n",
 					(*(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
 				break;
 			}
