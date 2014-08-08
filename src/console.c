@@ -37,26 +37,37 @@ static CMDDefinition cmd[] = {
 static void display_registers(FetcherPacket packet)
 {
 	HookRegisters *it;
+	int first = 1;
 
 	for(it = hook_head; it != NULL; it = it->next) {
-		printf("%d: %s = ", it->id, it->name);
+		if(!first) {
+			printf(" | ");
+		}
+		printf("%2d: %-16s = ", it->id, it->name);
 		switch(it->type) {
 		case ARM_CP_UNIMPL:
-			printf("UNIMPLEMENTED\n");
+			printf("%-16s", "UNIMPLEMENTED");
 			break;
 		case ARM_CP_CONST:
-			printf("0x%lx\n", it->const_value);
+			printf("0x%-16lx", it->const_value);
 			break;
 		case ARM_CP_NORMAL_L:
-			printf("0x%x\n",
+			printf("0x%-16x",
 			          (uint32_t)(*(uint32_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			break;
 		case ARM_CP_NORMAL_H:
-			printf("0x%lx\n",
+			printf("0x%-16lx",
 			          (*(uint64_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			break;
 		}
+
+		if(!first) {
+			printf("\n");
+		}
+
+		first = !first;
 	}
+	printf("\n");
 }
 
 static void desturctor()
