@@ -16,6 +16,7 @@ extern ARMCPRegArray reg_array[14];
 static void cmd_display(int argc, char *argv[]);
 static void cmd_undisplay(int argc, char *argv[]);
 static void cmd_print(int argc, char *argv[]);
+static void cmd_list(int argc, char *argv[]);
 static void cmd_store(int argc, char *argv[]);
 static void cmd_load(int argc, char *argv[]);
 static void cmd_quit(int argc, char *argv[]);
@@ -26,6 +27,7 @@ static CMDDefinition cmd[] = {
 	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display $register_name[end_bit:start_bit]"},
 	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay display_number"},
 	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print /x $register_name[end_bit:start_bit]"},
+	{.name = "list", .handler = cmd_list, .desc = "List all registers. -> list"},
 	{.name = "store", .handler = cmd_store, .desc = "Store display register list. -> store file_name"},
 	{.name = "load", .handler = cmd_load, .desc = "Load command script. -> load file_name"},
 	{.name = "quit", .handler = cmd_quit, .desc = "Terminate qemu-monitor."},
@@ -357,6 +359,35 @@ void cmd_print(int argc, char *argv[])
 		sprintf(str, "Invalid format\n");
 	}
 	printf("%s", str);
+}
+
+static void cmd_list(int argc, char *argv[])
+{
+	int i, j;
+
+	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
+		printf("======== %s\n", reg_array[i].name);
+		for(j = 0; j < reg_array[i].size; j++) {
+			ARMCPRegInfo tmp = reg_array[i].array[j];
+			printf("%s = ", tmp.name);
+			switch(tmp.type) {
+			case ARM_CP_UNIMPL:
+				printf("UNIMPLEMENTED\n");
+				break;
+			case ARM_CP_CONST:
+				printf("0x%lx\n", tmp.const_value);
+				break;
+			case ARM_CP_NORMAL_L:
+				printf("0x%x\n",
+				        (uint32_t)(*(uint32_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
+				break;
+			case ARM_CP_NORMAL_H:
+				printf("0x%lx\n",
+					(*(uint64_t *)((uint8_t *)(&packet) + tmp.fieldoffset)));
+				break;
+			}
+		}
+	}
 }
 
 void cmd_store(int argc, char *argv[])
