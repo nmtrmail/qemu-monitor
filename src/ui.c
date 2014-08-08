@@ -6,8 +6,6 @@
 #include "types.h"
 #include "ui.h"
 
-#include "regs.h"
-
 #define CONSOLE_LINES	15
 #define CONSOLE_COLS	COLS
 #define DISPLAY_LINES	(LINES - CONSOLE_LINES)
@@ -19,6 +17,7 @@
 
 #define MAX_LINE_WORDS	128
 
+extern ARMCPRegArray reg_array[14];
 /* Global Variables */
 HookRegisters *hook_head;
 FetcherPacket prev_packet;

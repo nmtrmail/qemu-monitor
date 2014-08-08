@@ -1,6 +1,3 @@
-#ifndef __REGS_H_
-#define __REGS_H_
-
 #include "types.h"
 
 /* AArch64 identification registers */
@@ -319,4 +316,3 @@ ARMCPRegArray reg_array[14] = {
 	{ .name = "AArch64 address registers", .array = v8_ad, .size = sizeof(v8_ad) / sizeof(ARMCPRegInfo)}
 };
 
-#endif
