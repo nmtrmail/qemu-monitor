@@ -101,7 +101,10 @@ static void display_registers(FetcherPacket packet)
 
 		first = !first;
 	}
-	printf("\n");
+
+	if(!first) {
+		printf("\n");
+	}
 }
 
 static void desturctor()
