@@ -24,14 +24,35 @@ static void cmd_help(int argc, char *argv[]);
 
 /* Command array */
 static CMDDefinition cmd[] = {
-	{.name = "display", .handler = cmd_display, .desc = "Display a register. -> display $register_name[end_bit:start_bit]"},
-	{.name = "undisplay", .handler = cmd_undisplay, .desc = "Undisplay a register. -> undisplay display_number"},
-	{.name = "print", .handler = cmd_print, .desc = "Print a register value. -> print /x $register_name[end_bit:start_bit]"},
-	{.name = "list", .handler = cmd_list, .desc = "List all registers. -> list"},
-	{.name = "store", .handler = cmd_store, .desc = "Store display register list. -> store file_name"},
-	{.name = "load", .handler = cmd_load, .desc = "Load command script. -> load file_name"},
-	{.name = "quit", .handler = cmd_quit, .desc = "Terminate qemu-monitor."},
-	{.name = "help", .handler = cmd_help, .desc = "Show this help guide."},
+	{.name = "display", .handler = cmd_display, 
+	 .desc = "* Display a register.\n"
+		 "  -> display $register_name[end_bit:start_bit]\n"
+		 "  -> display $register_name\n"
+	         "  -> display $MIDR_EL1[31:16]"},
+	{.name = "undisplay", .handler = cmd_undisplay,
+	 .desc = "* Undisplay a register.\n"
+		 "  -> undisplay display_number"},
+	{.name = "print", .handler = cmd_print,
+	 .desc = "* Print a register value in specified format(x, o, u, d).\n"
+		 "  -> print /x $register_name[end_bit:start_bit]\n"
+		 "  -> print $register_name[end_bit:start_bit]\n"
+		 "  -> print $register_name\n"
+	         "  -> print /x $pc[31:16]"},
+	{.name = "list", .handler = cmd_list,
+	 .desc = "* List all registers.\n"
+	         "  -> list"},
+	{.name = "store", .handler = cmd_store,
+	 .desc = "* Store display register list.\n"
+		 "  -> store file_name"},
+	{.name = "load", .handler = cmd_load,
+	 .desc = "* Load command script.\n"
+		 "  -> load file_name"},
+	{.name = "quit", .handler = cmd_quit,
+	 .desc = "* Terminate qemu-monitor.\n"
+		 "  -> quit"},
+	{.name = "help", .handler = cmd_help,
+	 .desc = "* Show this help guide.\n"
+		 "  -> help"},
 };
 
 static void display_registers(FetcherPacket packet)
@@ -487,6 +508,6 @@ void cmd_help(int argc, char *argv[])
 	int i;
 
 	for(i = 0; i < sizeof(cmd) / sizeof(CMDDefinition); i++) {
-		printf("%s : %s\n", cmd[i].name, cmd[i].desc);
+		printf("%s\n", cmd[i].desc);
 	}
 }
