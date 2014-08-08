@@ -121,6 +121,7 @@ void _console_prompt()
 		fgets(input, 128, stdin);
 		parse_line(input);
 		printf("-> ");
+		fflush(stdout);
 	}
 }
 
@@ -129,6 +130,7 @@ void console_handle(FetcherPacket packet)
 	printf("\n");
 	display_registers(packet);
 	printf("-> ");
+	fflush(stdout);
 }
 
 /* Command handler implementation */

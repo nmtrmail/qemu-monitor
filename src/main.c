@@ -128,8 +128,12 @@ static void *conn_thread(void *arg)
 
 	while(1) {
 		/* Connect to QEMU */
+		printf("Listen for QEMU... ");
+		fflush(stdout);
 		conn();
-		printf("\nConnect to QEMU!\n");
+		printf("connect success!\n");
+		printf("-> ");
+		fflush(stdout);
 
 		/* Handle each packet received from QEMU */
 		while(fread(&packet, sizeof(FetcherPacket), 1, fp)) {
