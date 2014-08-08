@@ -15,7 +15,7 @@
 #include "ui.h"
 
 /* IPC socket address */
-#define ADDRESS "tools/fetcher"
+#define ADDRESS "fetcher"
 
 /* Global variables */
 FILE *fp;

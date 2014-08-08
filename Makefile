@@ -29,7 +29,7 @@ $(OUTDIR)/%.o: %.c
 
 install: $(TARGET)
 	@echo "  INSTALL   "$(TARGET)
-	@install $(TARGET) $(PREFIX)/$(TARGET)
+	install $(TARGET) $(PREFIX)/bin/$(TARGET)
 
 clean:
 	rm -rf $(OUTDIR) $(TARGET) $(IPCPATH)
