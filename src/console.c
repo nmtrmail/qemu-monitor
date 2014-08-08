@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <pthread.h>
 #include "console.h"
 #include "types.h"
@@ -54,6 +55,18 @@ static CMDDefinition cmd[] = {
 	 .desc = "* Show this help guide.\n"
 		 "  -> help"},
 };
+
+static int strcicmp(char const *str1, char const *str2)
+{
+	if(strlen(str1) != strlen(str2)) {
+		return 1;
+	}
+	for (;; str1++, str2++) {
+		int diff = tolower(*str1) - tolower(*str2);
+		if (diff != 0 || !*str1)
+			return diff;
+	}
+}
 
 static void display_registers(FetcherPacket packet)
 {
@@ -206,7 +219,8 @@ void cmd_display(int argc, char *argv[])
 	/* Search register in registers array */
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
-			if(!strcmp(reg_array[i].array[j].name, reg_name)) {
+			if(!strcicmp(reg_array[i].array[j].name, reg_name)) {
+			//if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				break;
 			}
@@ -242,7 +256,8 @@ void cmd_display(int argc, char *argv[])
 
 	/* Iterate to last element */
 	for(; it != NULL; it = it->next) {
-		if(!strcmp(it->name, argv[0] + 1)) {
+		if(!strcicmp(it->name, argv[0] + 1)) {
+		//if(!strcmp(it->name, argv[0] + 1)) {
 			printf("Register \"%s\" has already in hook list\n", argv[0] + 1);
 			return;
 		}
@@ -342,7 +357,8 @@ void cmd_print(int argc, char *argv[])
 	/* Search register in registers array */
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
-			if(!strcmp(reg_array[i].array[j].name, reg_name)) {
+			if(!strcicmp(reg_array[i].array[j].name, reg_name)) {
+			//if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				tmp = reg_array[i].array[j];
 				break;
