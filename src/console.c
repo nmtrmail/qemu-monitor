@@ -194,10 +194,16 @@ void _console_prompt()
 	}
 }
 
+// XXX: workaround to same variable name problem
+static void setPacket(FetcherPacket a) {
+	memcpy(&packet, &a, sizeof(FetcherPacket));
+}
+
 void console_handle(FetcherPacket packet)
 {
 	printf("\n");
 	display_registers(packet);
+	setPacket(packet);
 	printf("-> ");
 	fflush(stdout);
 }
