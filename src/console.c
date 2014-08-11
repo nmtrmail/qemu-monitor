@@ -26,10 +26,11 @@ static void cmd_help(int argc, char *argv[]);
 /* Command array */
 static CMDDefinition cmd[] = {
 	{.name = "display", .handler = cmd_display, 
-	 .desc = "* Display a register.\n"
+	 .desc = "* Display a register in specified format(x, o, u, d).\n"
+		 "  -> display /x $register_name[end_bit:start_bit]\n"
 		 "  -> display $register_name[end_bit:start_bit]\n"
 		 "  -> display $register_name\n"
-	         "  -> display $MIDR_EL1[31:16]"},
+	         "  -> display /x $MIDR_EL1[31:16]"},
 	{.name = "undisplay", .handler = cmd_undisplay,
 	 .desc = "* Undisplay a register.\n"
 		 "  -> undisplay display_number"},
@@ -77,21 +78,39 @@ static void display_registers(FetcherPacket packet)
 		if(!first) {
 			printf(" | ");
 		}
+
+		char output[16] = {0};
+		if(it->type != ARM_CP_UNIMPL) {
+			switch(it->format) {
+			case FORMAT_DEC:
+				strcpy(output, "%-16ld");
+				break;
+			case FORMAT_HEX:
+				strcpy(output, "%#-16lx");
+				break;
+			case FORMAT_OCT:
+				strcpy(output, "%#-16lo");
+				break;
+			case FORMAT_UNS:
+				strcpy(output, "%-16lu");
+				break;
+			}
+		}
 		printf("%2d: %-16s = ", it->id, it->name);
 		switch(it->type) {
 		case ARM_CP_UNIMPL:
 			printf("%-16s", "UNIMPLEMENTED");
 			break;
 		case ARM_CP_CONST:
-			printf("0x%-16lx", it->const_value);
+			printf(output, it->const_value);
 			break;
 		case ARM_CP_NORMAL_L:
-			printf("0x%-16x",
-			          (uint32_t)(*(uint32_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
+			printf(output,
+			        (uint64_t)(*(uint32_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			break;
 		case ARM_CP_NORMAL_H:
-			printf("0x%-16lx",
-			          (*(uint64_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
+			printf(output,
+			       (*(uint64_t *)((uint8_t *)(&packet) + it->fieldoffset) & it->mask) >> it->start_bit);
 			break;
 		}
 
@@ -193,8 +212,37 @@ void cmd_display(int argc, char *argv[])
 	uint64_t mask = 0xFFFFFFFFFFFFFFFF;
 	char *pch;
 	char reg_name[64];
+	char reg[64];
+	int format = FORMAT_DEC;
 
-	if(argc > 1) {
+	if(argc == 1) {
+		strncpy(reg, argv[0], 64);
+	}
+	else if(argc == 2) {
+		if(argv[0][0] != '/') {
+			printf("Invalid format\n");
+			return;
+		}
+		switch(argv[0][1]) {
+		case 'd':
+			format = FORMAT_DEC;
+			break;
+		case 'o':
+			format = FORMAT_OCT;
+			break;
+		case 'x':
+			format = FORMAT_HEX;
+			break;
+		case 'u':
+			format = FORMAT_UNS;
+			break;
+		default:
+			printf("Invalid format\n");
+			return;
+		}
+		strncpy(reg, argv[1], 64);
+	}
+	else {
 		printf("Too many arguments\n");
 		return;
 	}
@@ -203,27 +251,26 @@ void cmd_display(int argc, char *argv[])
 	 * Register name format: leading dollar sign and optional bit field
 	 * $reg_name, $reg_name[end_bit:start_bit]
 	 */
-	if(argv[0][0] != '$') {
+	if(reg[0] != '$') {
 		printf("Invalid register name\n");
 		return;
 	}
-	if((pch = strchr(argv[0], '[')) != NULL) {
+	if((pch = strchr(reg, '[')) != NULL) {
 		sscanf(pch, "[%d:%d]", &end_bit, &start_bit);
 		int len = end_bit - start_bit;
 
 		mask >>= (63 - len);
 		mask <<= start_bit;
-		strncpy(reg_name, argv[0] + 1, pch - argv[0] - 1 < 64 ? pch - argv[0] - 1 : 64);
+		strncpy(reg_name, reg + 1, pch - reg - 1 < 64 ? pch - reg - 1 : 64);
 	}
 	else {
-		strncpy(reg_name, argv[0] + 1, 64);
+		strncpy(reg_name, reg + 1, 64);
 	}
 
 	/* Search register in registers array */
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
 			if(!strcicmp(reg_array[i].array[j].name, reg_name)) {
-			//if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				break;
 			}
@@ -240,15 +287,16 @@ void cmd_display(int argc, char *argv[])
 	}
 
 	HookRegisters *tmp = (HookRegisters *)malloc(sizeof(HookRegisters));
-	strncpy(tmp->name, argv[0] + 1, 64);
+	strncpy(tmp->name, reg + 1, 64);
 	tmp->next = NULL;
 	tmp->mask = mask;
 	tmp->const_value = reg_array[i].array[j].const_value;
 	tmp->type = reg_array[i].array[j].type;
 	tmp->fieldoffset = reg_array[i].array[j].fieldoffset;
 	tmp->start_bit = start_bit;
+	tmp->format = format;
 
-	printf("Add register \"%s\" to hook list\n", argv[0]);
+	printf("Add register \"%s\" to hook list\n", reg);
 
 	/* First element */
 	if(it == NULL) {
@@ -259,9 +307,8 @@ void cmd_display(int argc, char *argv[])
 
 	/* Iterate to last element */
 	for(; it != NULL; it = it->next) {
-		if(!strcicmp(it->name, argv[0] + 1)) {
-		//if(!strcmp(it->name, argv[0] + 1)) {
-			printf("Register \"%s\" has already in hook list\n", argv[0] + 1);
+		if(!strcicmp(it->name, reg + 1)) {
+			printf("Register \"%s\" has already in hook list\n", reg + 1);
 			return;
 		}
 
@@ -361,7 +408,6 @@ void cmd_print(int argc, char *argv[])
 	for(i = 0; i < sizeof(reg_array) / sizeof(struct ARMCPRegArray); i++) {
 		for(j = 0; j < reg_array[i].size; j++) {
 			if(!strcicmp(reg_array[i].array[j].name, reg_name)) {
-			//if(!strcmp(reg_array[i].array[j].name, reg_name)) {
 				valid = 1;
 				tmp = reg_array[i].array[j];
 				break;

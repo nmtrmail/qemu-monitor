@@ -106,10 +106,12 @@ typedef struct ARMCPRegArray {
 } ARMCPRegArray;
 
 /* Record registers which need to be display every step
- * pos : first level
- * index : second level
- * ex. reg_array[pos].array[index].name
  */
+#define FORMAT_DEC 1
+#define FORMAT_HEX 2
+#define FORMAT_OCT 3
+#define FORMAT_UNS 4
+
 typedef struct HookRegisters {
 	int id;
 	char name[64];
@@ -118,6 +120,7 @@ typedef struct HookRegisters {
 	uint64_t const_value;
 	uint64_t mask;
 	int start_bit;
+	int format;
 	struct HookRegisters *next;
 } HookRegisters;
 
